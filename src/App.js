@@ -1,8 +1,23 @@
 import React, { useState } from "react";
+import {
+  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid
+} from "recharts";
 import "./App.css";
 
 function App() {
+  const [screen, setScreen] = useState("home");
   const [tab, setTab] = useState("remise");
+
+  if (screen === "home") {
+    return (
+      <div className="home-screen">
+        <img src="logo-union.png" alt="Logo Union" className="logo" />
+        <h1>Bienvenue sur le Calculateur de Prix</h1>
+        <p>Optimisez vos remises et vos marges avec Union</p>
+        <button className="start-btn" onClick={() => setScreen("app")}>Accéder au calculateur</button>
+      </div>
+    );
+  }
 
   return (
     <div className="app-container">
@@ -56,23 +71,46 @@ function TripleNet() {
   const [tripartiteActive, setTripartiteActive] = useState(false);
   const [tripartite, setTripartite] = useState("");
   const [result, setResult] = useState("");
+  const [recap, setRecap] = useState([]);
 
   const calculer = () => {
     try {
+      const recapSteps = [];
       let p = parseFloat(prix.replace(",", "."));
+      recapSteps.push({ name: "Départ", value: p });
+
       if (stock !== "aucune") {
-        p *= (100 - parseFloat(stock)) / 100;
+        const stockVal = parseFloat(stock);
+        p *= (100 - stockVal) / 100;
+        recapSteps.push({ name: `Stock -${stockVal}%`, value: p });
       }
-      const r = parseFloat(rfa.replace(",", "."));
-      p *= (100 - r) / 100;
+
+      const rfaVal = parseFloat(rfa.replace(",", "."));
+      p *= (100 - rfaVal) / 100;
+      recapSteps.push({ name: `RFA -${rfaVal}%`, value: p });
+
       if (tripartiteActive) {
         const t = parseFloat(tripartite.replace(",", "."));
         p *= (100 - t) / 100;
+        recapSteps.push({ name: `Tripartite -${t}%`, value: p });
       }
+
       setResult(`Prix final : ${p.toFixed(2)} €`);
+      setRecap(recapSteps);
     } catch {
       setResult("Erreur dans les données.");
+      setRecap([]);
     }
+  };
+
+  const reset = () => {
+    setPrix("");
+    setStock("aucune");
+    setRfa("");
+    setTripartite("");
+    setTripartiteActive(false);
+    setResult("");
+    setRecap([]);
   };
 
   return (
@@ -93,8 +131,38 @@ function TripleNet() {
       {tripartiteActive && (
         <input value={tripartite} onChange={(e) => setTripartite(e.target.value)} placeholder="Tripartite (%)" />
       )}
-      <button onClick={calculer}>Calculer</button>
+      <div style={{ display: "flex", gap: "10px" }}>
+        <button onClick={calculer}>Calculer</button>
+        <button className="reset-btn" onClick={reset}>Réinitialiser</button>
+      </div>
       <p className="result">{result}</p>
+
+      {recap.length > 0 && (
+        <>
+          <div className="recap">
+            <h3>📄 Fiche Récap :</h3>
+            <ul>
+              {recap.map((item, index) => (
+                <li key={index}>
+                  {item.name} : {item.value.toFixed(2)} €
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <div style={{ width: "100%", height: 300 }}>
+            <ResponsiveContainer>
+              <BarChart data={recap}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" />
+                <YAxis />
+                <Tooltip />
+                <Bar dataKey="value" fill="#F26400" />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </>
+      )}
     </div>
   );
 }
